@@ -409,7 +409,7 @@ async def concat_audio_files(paths: list[str], out: str, ext: str, max_files_ope
 
     proc_futures = []
     for i in range(num_batches):
-        command = (
+        command = [
             "ffmpeg",
             "-i",
             f"concat:{'|'.join(itertools.islice(it, max_files_open))}",
@@ -418,15 +418,11 @@ async def concat_audio_files(paths: list[str], out: str, ext: str, max_files_ope
             "-loglevel",
             "warning",
             outpaths[i],
-        )
-        fut = asyncio.create_subprocess_exec(*command, stderr=asyncio.subprocess.PIPE)
-        proc_futures.append(fut)
+        ]
+        proc_futures.append(converter.run_ffmpeg(command))
 
-    # Create all processes concurrently
+    # Run all processes concurrently and wait for them to finish
     processes = await asyncio.gather(*proc_futures)
-
-    # wait for all of them to finish
-    await asyncio.gather(*[p.communicate() for p in processes])
     for proc in processes:
         if proc.returncode != 0:
             raise Exception(
